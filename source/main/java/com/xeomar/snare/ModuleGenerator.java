@@ -1,3 +1,5 @@
+package com.xeomar.snare;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -5,7 +7,6 @@ import java.io.IOException;
 import java.lang.module.ModuleFinder;
 import java.lang.module.ModuleReference;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -39,29 +40,8 @@ public class ModuleGenerator {
 		this.modulePath = modulePath;
 	}
 
-	public void execute( String[] commands ) {
-		List<File> files = Arrays.stream( commands ).map( ( name ) -> new File( getModulePath(), name ) ).collect( Collectors.toList() );
-
-		for( File file : files ) {
-			try {
-				int result = patch( file );
-				switch( result ) {
-					case 0: {
-						System.out.println( "Patch module: " + file.getName() );
-						break;
-					}
-					case 1: {
-						System.out.println( "Ready module: " + file.getName() );
-						break;
-					}
-				}
-			} catch( Exception exception ) {
-				exception.printStackTrace( System.err );
-			}
-		}
-	}
-
-	public int patch( File file ) throws Exception {
+	public int patch( Jar jar ) throws Exception {
+		File file = new File( getModulePath(), jar.getName() );
 		if( !file.exists() ) throw new FileNotFoundException( file.toString() );
 
 		Set<ModuleReference> moduleReferences = ModuleFinder.of( file.toPath() ).findAll();
@@ -84,9 +64,9 @@ public class ModuleGenerator {
 
 		if( moduleName == null ) moduleName = file.getName().replace( "-", "." );
 
-		patch( file, moduleName );
+		patch( file, moduleName, jar.isStandalone() );
 
-		if( isAutomaticModule( file ) ) throw new RuntimeException( "Module is still an automatic module: " + moduleName );
+		//if( isAutomaticModule( file ) ) throw new RuntimeException( "Module is still an automatic module: " + moduleName );
 
 		return 0;
 	}
@@ -102,9 +82,7 @@ public class ModuleGenerator {
 		return moduleReferences.iterator().next().descriptor().isAutomatic();
 	}
 
-	private void patch( File file, String moduleName ) throws IOException, InterruptedException {
-		System.out.println( "Patch module: " + moduleName );
-
+	private void patch( File file, String moduleName, boolean standalone ) throws IOException, InterruptedException {
 		File workFolder = new File( getWorkFolder() );
 		File tempModule = new File( workFolder, file.getName() );
 
@@ -112,14 +90,14 @@ public class ModuleGenerator {
 		try {
 			workFolder.mkdirs();
 			file.renameTo( tempModule );
-			patchModule( moduleName, workFolder, tempModule );
+			patchModule( moduleName, workFolder, tempModule, standalone );
 		} finally {
 			tempModule.renameTo( file );
 			deleteAll( workFolder );
 		}
 	}
 
-	private void patchModule( String moduleName, File workFolder, File tempModule ) throws IOException, InterruptedException {
+	private void patchModule( String moduleName, File workFolder, File tempModule, boolean standalone ) throws IOException, InterruptedException {
 		File javaBin = new File( System.getProperty( "java.home" ), "bin" );
 		File jdeps = new File( javaBin, "jdeps" );
 		File javac = new File( javaBin, "javac" );
@@ -128,7 +106,12 @@ public class ModuleGenerator {
 		File moduleInfoFolder = new File( workFolder, moduleName );
 		File moduleInfo = new File( moduleInfoFolder, "module-info.java" );
 
-		String jdepsResult = exec( false, jdeps.toString(), "--module-path", modulePath, "--add-modules=ALL-MODULE-PATH", "--generate-module-info", workFolder.toString(), tempModule.toString() );
+		String jdepsResult;
+		if( standalone ) {
+			jdepsResult = exec( false, jdeps.toString(), "--module-path", modulePath, "--generate-module-info", workFolder.toString(), tempModule.toString() );
+		} else {
+			jdepsResult = exec( false, jdeps.toString(), "--module-path", modulePath, "--add-modules=ALL-MODULE-PATH", "--generate-module-info", workFolder.toString(), tempModule.toString() );
+		}
 		if( !"".equals( jdepsResult ) ) {
 			System.err.println( jdepsResult );
 			return;
@@ -145,7 +128,7 @@ public class ModuleGenerator {
 		}
 	}
 
-	private String exec( boolean log, String... commands ) throws IOException, InterruptedException {
+	String exec( boolean log, String... commands ) throws IOException, InterruptedException {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 
 		ProcessBuilder builder = new ProcessBuilder( commands );

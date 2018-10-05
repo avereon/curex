@@ -1,14 +1,11 @@
+package com.xeomar.snare;
+
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-
-import java.io.File;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Generally used after the maven-dependency-plugin to patch jars that are not
@@ -22,7 +19,7 @@ public class PatchMojo extends AbstractMojo {
 	private String modulePath;
 
 	@Parameter( property = "modules" )
-	private String[] jars;
+	private Jar[] jars;
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
@@ -30,22 +27,18 @@ public class PatchMojo extends AbstractMojo {
 
 		getLog().info( "Module path: " + generator.getModulePath() );
 
-		List<File> files = Arrays.stream( jars ).map( ( name ) -> new File( getModulePath(), name ) ).collect( Collectors.toList() );
-
-		for( File file : files ) {
+		for( Jar jar : jars ) {
 			try {
-				if( file.isFile() ) {
-					int result = generator.patch( file );
+					int result = generator.patch( jar );
 					switch( result ) {
 						case 0: {
-							getLog().info( "Patch module: " + file.getName() );
+							getLog().info( "Patch module: " + jar.getName() );
 							break;
 						}
 						case 1: {
-							getLog().info( "Ready module: " + file.getName() );
+							getLog().info( "Ready module: " + jar.getName() );
 							break;
 						}
-					}
 				}
 			} catch( Throwable throwable ) {
 				getLog().error( "Error occurred generating module patch", throwable );
@@ -63,11 +56,11 @@ public class PatchMojo extends AbstractMojo {
 		this.modulePath = modulePath;
 	}
 
-	public String[] getJars() {
+	public Jar[] getJars() {
 		return jars;
 	}
 
-	public void setJars( String[] jars ) {
+	public void setJars( Jar[] jars ) {
 		this.jars = jars;
 	}
 

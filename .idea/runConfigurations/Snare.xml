@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Snare" type="Application" factoryName="Application">
-    <option name="MAIN_CLASS_NAME" value="Main" />
+    <option name="MAIN_CLASS_NAME" value="com.xeomar.snare.Main" />
     <module name="snare" />
     <option name="PROGRAM_PARAMETERS" value="source/test/resources commons-io.jar jackson-core.jar jackson-annotations.jar jackson-databind.jar slf4j-api.jar slf4j-jdk14.jar javafx-base.jar javafx-graphics.jar javafx-controls.jar" />
     <method v="2">
