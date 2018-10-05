@@ -82,20 +82,13 @@ public class ModuleGenerator {
 			}
 		}
 
-		if( moduleName == null ) {
-			moduleName = file.getName().replace( "-", "." );
-			//System.out.println( "Generated module name: " + moduleName );
-		}
+		if( moduleName == null ) moduleName = file.getName().replace( "-", "." );
 
 		fix( file, moduleName );
 	}
 
 	private void fix( File file, String moduleName ) throws IOException, InterruptedException {
-		System.out.println( "Patch module:  " + moduleName );
-
-		//		System.out.println( "Jar path: " + file.getParent() );
-		//		System.out.println( "Jar name: " + file.getName() );
-		//		System.out.println( "Module path: " + getModulePath() );
+		System.out.println( "Produce module: " + moduleName );
 
 		File workFolder = new File( getWorkFolder() );
 		File tempModule = new File( workFolder, file.getName() );
@@ -138,7 +131,5 @@ public class ModuleGenerator {
 		}
 		file.delete();
 	}
-
-
 
 }
