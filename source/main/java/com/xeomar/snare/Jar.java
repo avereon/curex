@@ -1,10 +1,13 @@
 package com.xeomar.snare;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Jar {
 
 	private String name;
 
-	private boolean standalone;
+	private List<String> modules = new ArrayList<>();
 
 	public String getName() {
 		return name;
@@ -15,12 +18,13 @@ public class Jar {
 		return this;
 	}
 
-	public boolean isStandalone() {
-		return standalone;
+	public List<String> getModules() {
+		return modules;
 	}
 
-	public Jar setStandalone( boolean standalone ) {
-		this.standalone = standalone;
+	public Jar setModules( List<String> modules ) {
+		this.modules = modules;
 		return this;
 	}
+
 }
