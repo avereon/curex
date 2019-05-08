@@ -1,4 +1,4 @@
-package com.xeomar.snare;
+package com.xeomar.curex;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -35,14 +35,14 @@ public class PatchMojo extends AbstractMojo {
 	private String tempFolder = System.getProperty( "java.io.tmpdir" ) + "/modpatch";
 
 	@Parameter( property = "modules" )
-	private Jar[] jars;
+	private ModuleJar[] jars;
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		getLog().info( "Module path: " + getModulePath() );
 
 		try {
-			for( Jar jar : jars ) {
+			for( ModuleJar jar : jars ) {
 				patch( jar );
 			}
 		} catch( Throwable throwable ) {
@@ -67,15 +67,15 @@ public class PatchMojo extends AbstractMojo {
 		this.tempFolder = tempFolder;
 	}
 
-	public Jar[] getJars() {
+	public ModuleJar[] getJars() {
 		return jars;
 	}
 
-	public void setJars( Jar[] jars ) {
+	public void setJars( ModuleJar[] jars ) {
 		this.jars = jars;
 	}
 
-	public int patch( Jar jar ) throws Exception {
+	public int patch( ModuleJar jar ) throws Exception {
 		File file = new File( getModulePath(), jar.getName() );
 		if( !file.exists() ) throw new FileNotFoundException( file.toString() );
 
@@ -83,7 +83,7 @@ public class PatchMojo extends AbstractMojo {
 
 		if( moduleReferences.size() > 1 ) {
 			List<String> names = moduleReferences.stream().map( ( reference ) -> reference.descriptor().name() ).collect( Collectors.toList() );
-			throw new IllegalArgumentException( "Jar contains more than one module: " + names.toString() );
+			throw new IllegalArgumentException( "ModuleJar contains more than one module: " + names.toString() );
 		}
 
 		String moduleName = null;
@@ -113,7 +113,7 @@ public class PatchMojo extends AbstractMojo {
 
 		if( moduleReferences.size() > 1 ) {
 			List<String> names = moduleReferences.stream().map( ( reference ) -> reference.descriptor().name() ).collect( Collectors.toList() );
-			throw new IllegalArgumentException( "Jar contains more than one module: " + names.toString() );
+			throw new IllegalArgumentException( "ModuleJar contains more than one module: " + names.toString() );
 		}
 
 		return moduleReferences.iterator().next().descriptor().isAutomatic();

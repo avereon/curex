@@ -1,9 +1,9 @@
-package com.xeomar.snare;
+package com.xeomar.curex;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class Jar {
+public class ModuleJar {
 
 	private String name;
 
@@ -13,7 +13,7 @@ public class Jar {
 		return name;
 	}
 
-	public Jar setName( String name ) {
+	public ModuleJar setName( String name ) {
 		this.name = name;
 		return this;
 	}
@@ -22,7 +22,7 @@ public class Jar {
 		return modules;
 	}
 
-	public Jar setModules( List<String> modules ) {
+	public ModuleJar setModules( List<String> modules ) {
 		this.modules = modules;
 		return this;
 	}

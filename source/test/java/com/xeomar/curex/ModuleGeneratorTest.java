@@ -1,4 +1,4 @@
-package com.xeomar.snare;
+package com.xeomar.curex;
 
 import org.junit.Test;
 
@@ -18,16 +18,16 @@ public class ModuleGeneratorTest {
 		MockModuleGenerator generator = new MockModuleGenerator();
 		generator.setModulePath( modulePath );
 
-		List<Jar> jars = new ArrayList<>();
-		jars.add( new Jar().setName( "commons-io.jar" ) );
-		jars.add( new Jar().setName( "jackson-core.jar" ) );
-		jars.add( new Jar().setName( "jackson-annotations.jar" ) );
-		jars.add( new Jar().setName( "jackson-databind.jar" ).setModules( List.of( "com.fasterxml.jackson.annotation" ) ) );
-		jars.add( new Jar().setName( "slf4j-api.jar" ) );
-		jars.add( new Jar().setName( "slf4j-jdk14.jar" ) );
-		jars.add( new Jar().setName( "razor.jar" ).setModules( List.of( "org.apache.commons.io" )) );
+		List<ModuleJar> jars = new ArrayList<>();
+		jars.add( new ModuleJar().setName( "commons-io.jar" ) );
+		jars.add( new ModuleJar().setName( "jackson-core.jar" ) );
+		jars.add( new ModuleJar().setName( "jackson-annotations.jar" ) );
+		jars.add( new ModuleJar().setName( "jackson-databind.jar" ).setModules( List.of( "com.fasterxml.jackson.annotation" ) ) );
+		jars.add( new ModuleJar().setName( "slf4j-api.jar" ) );
+		jars.add( new ModuleJar().setName( "slf4j-jdk14.jar" ) );
+		jars.add( new ModuleJar().setName( "razor.jar" ).setModules( List.of( "org.apache.commons.io" )) );
 
-		for( Jar jar : jars ) {
+		for( ModuleJar jar : jars ) {
 			generator.patch( jar );
 		}
 

@@ -10,8 +10,8 @@ patch() {
 
 	MOD_NAME=$(echo "${JAR_NAME%.*}" | sed 's/-/./')
 
-	echo "Jar path: $JAR_PATH"
-	echo "Jar name: $JAR_NAME"
+	echo "ModuleJar path: $JAR_PATH"
+	echo "ModuleJar name: $JAR_NAME"
 	echo "Module name: $MOD_NAME"
 
 	# Need to move module to fix out of the module path
