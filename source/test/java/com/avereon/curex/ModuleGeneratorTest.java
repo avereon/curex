@@ -17,6 +17,7 @@ public class ModuleGeneratorTest {
 		String modulePath = "source/test/resources";
 		MockModuleGenerator generator = new MockModuleGenerator();
 		generator.setModulePath( modulePath );
+		String tempFolder = generator.getTempFolder();
 
 		List<ModuleJar> jars = new ArrayList<>();
 		jars.add( new ModuleJar().setName( "commons-io.jar" ) );
@@ -27,25 +28,26 @@ public class ModuleGeneratorTest {
 		jars.add( new ModuleJar().setName( "slf4j-jdk14.jar" ) );
 		jars.add( new ModuleJar().setName( "razor.jar" ).setModules( List.of( "org.apache.commons.io" )) );
 
-		for( ModuleJar jar : jars ) {
-			generator.patch( jar );
-		}
+		generator.setJars( jars.toArray( new ModuleJar[]{} ) );
+		generator.execute();
+//		for( ModuleJar jar : jars ) {
+//			generator.patch( jar );
+//		}
 
 		List<String[]> expectedCommands = new ArrayList<>();
-		expectedCommands.addAll( generateExpectedCommands( modulePath, "commons-io.jar", "org.apache.commons.io" ) );
-		expectedCommands.addAll( generateExpectedCommands( modulePath, "jackson-core.jar", "com.fasterxml.jackson.core" ) );
-		expectedCommands.addAll( generateExpectedCommands( modulePath, "jackson-annotations.jar", "com.fasterxml.jackson.annotation" ) );
-		expectedCommands.addAll( generateExpectedCommands( modulePath, "jackson-databind.jar", "com.fasterxml.jackson.databind", "com.fasterxml.jackson.annotation" ) );
+		expectedCommands.addAll( generateExpectedCommands( modulePath, tempFolder, "commons-io.jar", "org.apache.commons.io" ) );
+		expectedCommands.addAll( generateExpectedCommands( modulePath, tempFolder, "jackson-core.jar", "com.fasterxml.jackson.core" ) );
+		expectedCommands.addAll( generateExpectedCommands( modulePath, tempFolder, "jackson-annotations.jar", "com.fasterxml.jackson.annotation" ) );
+		expectedCommands.addAll( generateExpectedCommands( modulePath, tempFolder, "jackson-databind.jar", "com.fasterxml.jackson.databind", "com.fasterxml.jackson.annotation" ) );
 		assertThat( generator.getCommands(), contains( expectedCommands.toArray() ) );
 	}
 
-	private List<String[]> generateExpectedCommands( String modulePath, String jarName, String moduleName ) {
-		return generateExpectedCommands( modulePath, jarName, moduleName, null );
+	private List<String[]> generateExpectedCommands( String modulePath, String tempFolder, String jarName, String moduleName ) {
+		return generateExpectedCommands( modulePath, tempFolder, jarName, moduleName, null );
 	}
 
-	private List<String[]> generateExpectedCommands( String modulePath, String jarName, String moduleName, String addModules ) {
+	private List<String[]> generateExpectedCommands( String modulePath, String tempFolder, String jarName, String moduleName, String addModules ) {
 		String javaHome = System.getProperty( "java.home" );
-		String tempFolder = System.getProperty( "java.io.tmpdir" ) + "/modpatch";
 		List<String[]> expectedCommands = new ArrayList<>();
 		if( addModules == null ) {
 			expectedCommands.add( new String[]{ javaHome + "/bin/jdeps", "--upgrade-module-path", modulePath, "--generate-module-info", tempFolder, tempFolder + "/" + jarName } );

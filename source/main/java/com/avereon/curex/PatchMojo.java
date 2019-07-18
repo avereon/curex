@@ -16,6 +16,7 @@ import java.lang.module.ModuleReference;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -28,11 +29,13 @@ import java.util.stream.Collectors;
 @Mojo( name = "patch", defaultPhase = LifecyclePhase.PREPARE_PACKAGE )
 public class PatchMojo extends AbstractMojo {
 
+	private Random random = new Random();
+
 	@Parameter( property = "modulePath", defaultValue = "${project.build.directory}/dependency" )
 	private String modulePath;
 
 	@Parameter( property = "tempFolder" )
-	private String tempFolder = System.getProperty( "java.io.tmpdir" ) + "/modpatch";
+	private String tempFolder = System.getProperty( "java.io.tmpdir" ) + "/curex/" + Integer.toString( random.nextInt(), 16 );
 
 	@Parameter( property = "modules" )
 	private ModuleJar[] jars;
@@ -40,6 +43,7 @@ public class PatchMojo extends AbstractMojo {
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		getLog().info( "Module path: " + getModulePath() );
+		getLog().info( "Temp folder: " + getTempFolder() );
 
 		try {
 			for( ModuleJar jar : jars ) {
@@ -145,16 +149,31 @@ public class PatchMojo extends AbstractMojo {
 
 		StringBuilder builder = new StringBuilder();
 		for( String module : modules ) {
-			builder.append(",");
-			builder.append(module );
+			builder.append( "," );
+			builder.append( module );
 		}
 		String addModules = modules.size() == 0 ? "" : builder.toString().substring( 1 );
 
 		String jdepsResult;
 		if( modules.size() == 0 ) {
-			jdepsResult = exec( false, jdeps.toString(), "--upgrade-module-path", modulePath, "--generate-module-info", workFolder.toString(), tempModule.toString() );
+			jdepsResult = exec( false,
+				jdeps.toString(),
+				"--upgrade-module-path",
+				modulePath,
+				"--generate-module-info",
+				workFolder.toString(),
+				tempModule.toString()
+			);
 		} else {
-			jdepsResult = exec( false, jdeps.toString(), "--upgrade-module-path", modulePath, "--add-modules=" + addModules, "--generate-module-info", workFolder.toString(), tempModule.toString() );
+			jdepsResult = exec( false,
+				jdeps.toString(),
+				"--upgrade-module-path",
+				modulePath,
+				"--add-modules=" + addModules,
+				"--generate-module-info",
+				workFolder.toString(),
+				tempModule.toString()
+			);
 		}
 		if( !"".equals( jdepsResult ) ) throw new RuntimeException( jdepsResult );
 
