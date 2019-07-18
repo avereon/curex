@@ -1,4 +1,4 @@
-package com.xeomar.curex;
+package com.avereon.curex;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;

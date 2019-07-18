@@ -1,4 +1,4 @@
-package com.xeomar.curex;
+package com.avereon.curex;
 
 import java.util.ArrayList;
 import java.util.List;

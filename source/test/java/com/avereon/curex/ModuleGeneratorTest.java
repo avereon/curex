@@ -1,4 +1,4 @@
-package com.xeomar.curex;
+package com.avereon.curex;
 
 import org.junit.Test;
 
