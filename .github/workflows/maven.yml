@@ -1,4 +1,4 @@
-name: Avereon Zenna Build
+name: Avereon Curex CI
 
 on: [push]
 
