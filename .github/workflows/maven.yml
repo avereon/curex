@@ -14,6 +14,10 @@ jobs:
           java-version: 11
       - name: Build
         env:
+          AVN_GPG_PASSWORD: ${{ secrets.AVN_GPG_PASSWORD }}
+          AVN_KEYSTORE_PASSWORD: ${{ secrets.AVN_KEYSTORE_PASSWORD }}
           AVN_REPO_USERNAME: ${{ secrets.AVN_REPO_USERNAME }}
           AVN_REPO_PASSWORD: ${{ secrets.AVN_REPO_PASSWORD }}
-        run: mvn deploy -B -U -V --settings .github/settings.xml --file pom.xml
+        run: |
+          gpg --quiet --batch --yes --decrypt --passphrase=$AVN_GPG_PASSWORD --output .github/avereon.keystore .github/avereon.keystore.gpg
+          mvn deploy -B -U -V --settings .github/settings.xml --file pom.xml
