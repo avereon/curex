@@ -1,4 +1,4 @@
-name: Avereon Curex CI
+name: Avereon Curex Continuous
 
 on: [push]
 
