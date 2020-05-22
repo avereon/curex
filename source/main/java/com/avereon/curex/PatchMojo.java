@@ -1,8 +1,6 @@
 package com.avereon.curex;
 
 import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -29,19 +27,19 @@ import java.util.stream.Collectors;
 @Mojo( name = "patch", defaultPhase = LifecyclePhase.PREPARE_PACKAGE )
 public class PatchMojo extends AbstractMojo {
 
-	private Random random = new Random();
+	private final Random random = new Random();
 
 	@Parameter( property = "modulePath", defaultValue = "${project.build.directory}/dependency" )
 	private String modulePath;
 
 	@Parameter( property = "tempFolder" )
-	private String tempFolder = System.getProperty( "java.io.tmpdir" ) + "/curex/" + Integer.toString( random.nextInt(), 16 );
+	private String tempFolder = System.getProperty( "java.io.tmpdir" ) + "/curex/" + Integer.toHexString( random.nextInt() );
 
 	@Parameter( property = "modules" )
 	private ModuleJar[] jars;
 
 	@Override
-	public void execute() throws MojoExecutionException, MojoFailureException {
+	public void execute() {
 		getLog().info( "Module path: " + getModulePath() );
 		getLog().info( "Temp folder: " + getTempFolder() );
 
@@ -67,10 +65,12 @@ public class PatchMojo extends AbstractMojo {
 		return tempFolder;
 	}
 
+	@SuppressWarnings( "unused" )
 	public void setTempFolder( String tempFolder ) {
 		this.tempFolder = tempFolder;
 	}
 
+	@SuppressWarnings( "unused" )
 	public ModuleJar[] getJars() {
 		return jars;
 	}
@@ -79,16 +79,11 @@ public class PatchMojo extends AbstractMojo {
 		this.jars = jars;
 	}
 
-	public int patch( ModuleJar jar ) throws Exception {
+	public void patch( ModuleJar jar ) throws Exception {
 		File file = new File( getModulePath(), jar.getName() );
 		if( !file.exists() ) throw new FileNotFoundException( file.toString() );
 
-		Set<ModuleReference> moduleReferences = ModuleFinder.of( file.toPath() ).findAll();
-
-		if( moduleReferences.size() > 1 ) {
-			List<String> names = moduleReferences.stream().map( ( reference ) -> reference.descriptor().name() ).collect( Collectors.toList() );
-			throw new IllegalArgumentException( "ModuleJar contains more than one module: " + names.toString() );
-		}
+		Set<ModuleReference> moduleReferences = getModuleReferences( file );
 
 		String moduleName = null;
 
@@ -98,7 +93,7 @@ public class PatchMojo extends AbstractMojo {
 				moduleName = reference.descriptor().name();
 			} else {
 				getLog().info( "Existing module: " + jar.getName() );
-				return 1;
+				return;
 			}
 		}
 
@@ -108,11 +103,9 @@ public class PatchMojo extends AbstractMojo {
 		patch( file, moduleName, jar.getModules() );
 
 		//if( isAutomaticModule( file ) ) throw new RuntimeException( "Module is still an automatic module: " + moduleName );
-
-		return 0;
 	}
 
-	private boolean isAutomaticModule( File file ) {
+	private Set<ModuleReference> getModuleReferences( File file ) {
 		Set<ModuleReference> moduleReferences = ModuleFinder.of( file.toPath() ).findAll();
 
 		if( moduleReferences.size() > 1 ) {
@@ -120,9 +113,15 @@ public class PatchMojo extends AbstractMojo {
 			throw new IllegalArgumentException( "ModuleJar contains more than one module: " + names.toString() );
 		}
 
-		return moduleReferences.iterator().next().descriptor().isAutomatic();
+		return moduleReferences;
 	}
 
+	@SuppressWarnings( "unused" )
+	private boolean isAutomaticModule( File file ) {
+		return getModuleReferences( file ).iterator().next().descriptor().isAutomatic();
+	}
+
+	@SuppressWarnings( "ResultOfMethodCallIgnored" )
 	private void patch( File file, String moduleName, List<String> modules ) throws IOException, InterruptedException {
 		File workFolder = new File( getTempFolder() );
 		File tempModule = new File( workFolder, file.getName() );
@@ -183,12 +182,10 @@ public class PatchMojo extends AbstractMojo {
 			return;
 		}
 		String jarResult = exec( false, jar.toString(), "uf", tempModule.toString(), "-C", moduleInfoFolder.toString(), "module-info.class" );
-		if( !"".equals( jarResult ) ) {
-			System.err.println( jarResult );
-			return;
-		}
+		if( !"".equals( jarResult ) ) System.err.println( jarResult );
 	}
 
+	@SuppressWarnings( "SameParameterValue" )
 	String exec( boolean log, String... commands ) throws IOException, InterruptedException {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 
@@ -208,6 +205,7 @@ public class PatchMojo extends AbstractMojo {
 		return result == 0 ? "" : output.toString( StandardCharsets.UTF_8.toString() );
 	}
 
+	@SuppressWarnings( "ResultOfMethodCallIgnored" )
 	private static void deleteAll( File file ) {
 		if( file.isDirectory() ) {
 			for( File child : Objects.requireNonNull( file.listFiles() ) ) {
