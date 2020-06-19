@@ -4,10 +4,11 @@ import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.shared.model.fileset.FileSet;
+import org.apache.maven.shared.model.fileset.util.FileSetManager;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.module.ModuleFinder;
 import java.lang.module.ModuleReference;
@@ -80,9 +81,15 @@ public class PatchMojo extends AbstractMojo {
 	}
 
 	public void patch( ModuleJar jar ) throws Exception {
-		File file = new File( getModulePath(), jar.getName() );
-		if( !file.exists() ) throw new FileNotFoundException( file.toString() );
+		FileSet fileSet = new FileSet();
+		fileSet.setDirectory( getModulePath() );
+		fileSet.addInclude( jar.getName() );
+		for( String include : new FileSetManager().getIncludedFiles( fileSet ) ) {
+			patch( jar, new File( getModulePath(), include ) );
+		}
+	}
 
+	private void patch( ModuleJar jar, File file ) throws IOException, InterruptedException {
 		Set<ModuleReference> moduleReferences = getModuleReferences( file );
 
 		String moduleName = null;
@@ -92,14 +99,14 @@ public class PatchMojo extends AbstractMojo {
 			if( reference.descriptor().isAutomatic() ) {
 				moduleName = reference.descriptor().name();
 			} else {
-				getLog().info( "Existing module: " + jar.getName() );
+				getLog().info( "Existing module: " + file.getName() );
 				return;
 			}
 		}
 
 		if( moduleName == null ) moduleName = file.getName().replace( "-", "." );
 
-		getLog().info( "Patching module: " + jar.getName() );
+		getLog().info( "Patching module: " + file.getName() );
 		patch( file, moduleName, jar.getModules() );
 
 		//if( isAutomaticModule( file ) ) throw new RuntimeException( "Module is still an automatic module: " + moduleName );
