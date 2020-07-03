@@ -34,7 +34,7 @@ public class PatchMojo extends AbstractMojo {
 	private String modulePath;
 
 	@Parameter( property = "tempFolder" )
-	private String tempFolder = System.getProperty( "java.io.tmpdir" ) + "/curex/" + Integer.toHexString( random.nextInt() );
+	private String tempFolder = System.getProperty( "java.io.tmpdir" ) + "/curex-" + Integer.toHexString( random.nextInt() );
 
 	@Parameter( property = "modules" )
 	private ModuleJar[] jars;
@@ -135,8 +135,8 @@ public class PatchMojo extends AbstractMojo {
 
 		// Move the module to fix out of the module path
 		try {
-			workFolder.mkdirs();
-			file.renameTo( tempModule );
+			if( !workFolder.mkdirs() ) throw new IOException( "Unable to make temp folder " + workFolder );
+			if( !file.renameTo( tempModule ) ) throw new IOException( "Unable to move " + file + " to " + tempModule );
 			patchModule( moduleName, workFolder, tempModule, modules );
 		} finally {
 			tempModule.renameTo( file );
@@ -161,7 +161,7 @@ public class PatchMojo extends AbstractMojo {
 		String addModules = modules.size() == 0 ? "" : builder.toString().substring( 1 );
 
 		String jdepsResult;
-		if( modules.size() == 0 ) {
+		if( addModules.isBlank() ) {
 			jdepsResult = exec( false,
 				jdeps.toString(),
 				"--upgrade-module-path",
