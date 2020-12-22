@@ -34,9 +34,12 @@
 	</pluginRepositories>
 
 	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
 		<!-- Version numbers updated 02 Jul 2020 -->
+
+		<!-- Needs to stay at a version compatible with all maven builds -->
+		<!-- Keep consistent with the CI pipeline -->
+		<java.version>11</java.version>
+
 		<!-- Runtime dependencies -->
 		<maven.plugin.api.version>3.0</maven.plugin.api.version>
 		<maven.plugin.annotations.version>3.4</maven.plugin.annotations.version>
