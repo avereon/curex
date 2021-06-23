@@ -117,7 +117,7 @@ public class PatchMojo extends AbstractMojo {
 
 		if( moduleReferences.size() > 1 ) {
 			List<String> names = moduleReferences.stream().map( ( reference ) -> reference.descriptor().name() ).collect( Collectors.toList() );
-			throw new IllegalArgumentException( "ModuleJar contains more than one module: " + names.toString() );
+			throw new IllegalArgumentException( "ModuleJar contains more than one module: " + names);
 		}
 
 		return moduleReferences;
@@ -158,12 +158,13 @@ public class PatchMojo extends AbstractMojo {
 			builder.append( "," );
 			builder.append( module );
 		}
-		String addModules = modules.size() == 0 ? "" : builder.toString().substring( 1 );
+		String addModules = modules.size() == 0 ? "" : builder.substring(1);
 
 		String jdepsResult;
 		if( addModules.isBlank() ) {
 			jdepsResult = exec( false,
 				jdeps.toString(),
+				"--multi-release",
 				"--upgrade-module-path",
 				modulePath,
 				"--generate-module-info",
@@ -173,6 +174,7 @@ public class PatchMojo extends AbstractMojo {
 		} else {
 			jdepsResult = exec( false,
 				jdeps.toString(),
+				"--multi-release",
 				"--upgrade-module-path",
 				modulePath,
 				"--add-modules=" + addModules,
