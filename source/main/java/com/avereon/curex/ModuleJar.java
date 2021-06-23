@@ -7,6 +7,8 @@ public class ModuleJar {
 
 	private String name;
 
+	private String module;
+
 	private List<String> modules = new ArrayList<>();
 
 	public String getName() {
@@ -15,6 +17,15 @@ public class ModuleJar {
 
 	public ModuleJar setName( String name ) {
 		this.name = name;
+		return this;
+	}
+
+	public String getModule() {
+		return module;
+	}
+
+	public ModuleJar setModule(String module) {
+		this.module = module;
 		return this;
 	}
 

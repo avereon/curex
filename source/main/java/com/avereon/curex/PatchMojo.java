@@ -92,9 +92,9 @@ public class PatchMojo extends AbstractMojo {
 	private void patch( ModuleJar jar, File file ) throws IOException, InterruptedException {
 		Set<ModuleReference> moduleReferences = getModuleReferences( file );
 
-		String moduleName = null;
+		String moduleName = jar.getModule();
 
-		if( moduleReferences.size() == 1 ) {
+		if( moduleName == null && moduleReferences.size() == 1 ) {
 			ModuleReference reference = moduleReferences.iterator().next();
 			if( reference.descriptor().isAutomatic() ) {
 				moduleName = reference.descriptor().name();
@@ -106,7 +106,7 @@ public class PatchMojo extends AbstractMojo {
 
 		if( moduleName == null ) moduleName = file.getName().replace( "-", "." );
 
-		getLog().info( "Patching module: " + file.getName() );
+		getLog().info( "Patching module: " + file.getName() + " as " + moduleName );
 		patch( file, moduleName, jar.getModules() );
 
 		//if( isAutomaticModule( file ) ) throw new RuntimeException( "Module is still an automatic module: " + moduleName );
@@ -165,6 +165,7 @@ public class PatchMojo extends AbstractMojo {
 			jdepsResult = exec( false,
 				jdeps.toString(),
 				"--multi-release",
+				"base",
 				"--upgrade-module-path",
 				modulePath,
 				"--generate-module-info",
@@ -175,6 +176,7 @@ public class PatchMojo extends AbstractMojo {
 			jdepsResult = exec( false,
 				jdeps.toString(),
 				"--multi-release",
+				"base",
 				"--upgrade-module-path",
 				modulePath,
 				"--add-modules=" + addModules,

@@ -46,9 +46,9 @@ public class ModuleGeneratorTest {
 		String javaHome = System.getProperty( "java.home" );
 		List<String[]> expectedCommands = new ArrayList<>();
 		if( addModules == null ) {
-			expectedCommands.add( new String[]{ javaHome + "/bin/jdeps", "--multi-release", "--upgrade-module-path", modulePath, "--generate-module-info", tempFolder, tempFolder + "/" + jarName } );
+			expectedCommands.add( new String[]{ javaHome + "/bin/jdeps", "--multi-release", "base", "--upgrade-module-path", modulePath, "--generate-module-info", tempFolder, tempFolder + "/" + jarName } );
 		} else {
-			expectedCommands.add( new String[]{ javaHome + "/bin/jdeps", "--multi-release", "--upgrade-module-path", modulePath, "--add-modules=" + addModules, "--generate-module-info", tempFolder, tempFolder + "/" + jarName } );
+			expectedCommands.add( new String[]{ javaHome + "/bin/jdeps", "--multi-release", "base", "--upgrade-module-path", modulePath, "--add-modules=" + addModules, "--generate-module-info", tempFolder, tempFolder + "/" + jarName } );
 		}
 		expectedCommands.add( new String[]{ javaHome + "/bin/javac", "-p", modulePath, "--patch-module", moduleName + "=" + tempFolder + "/" + jarName, tempFolder + "/" + moduleName + "/module-info.java" } );
 		expectedCommands.add( new String[]{ javaHome + "/bin/jar", "uf", tempFolder + "/" + jarName, "-C", tempFolder + "/" + moduleName, "module-info.class" } );
