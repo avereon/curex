@@ -164,8 +164,6 @@ public class PatchMojo extends AbstractMojo {
 		if( addModules.isBlank() ) {
 			jdepsResult = exec( false,
 				jdeps.toString(),
-				"--multi-release",
-				"base",
 				"--upgrade-module-path",
 				modulePath,
 				"--generate-module-info",
@@ -175,8 +173,6 @@ public class PatchMojo extends AbstractMojo {
 		} else {
 			jdepsResult = exec( false,
 				jdeps.toString(),
-				"--multi-release",
-				"base",
 				"--upgrade-module-path",
 				modulePath,
 				"--add-modules=" + addModules,
