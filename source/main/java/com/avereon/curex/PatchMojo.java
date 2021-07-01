@@ -1,15 +1,18 @@
 package com.avereon.curex;
 
+import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.model.fileset.FileSet;
 import org.apache.maven.shared.model.fileset.util.FileSetManager;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.lang.module.ModuleDescriptor;
 import java.lang.module.ModuleFinder;
 import java.lang.module.ModuleReference;
 import java.nio.charset.StandardCharsets;
@@ -29,6 +32,9 @@ import java.util.stream.Collectors;
 public class PatchMojo extends AbstractMojo {
 
 	private final Random random = new Random();
+
+	@Parameter( readonly = true, defaultValue = "${project}" )
+	private MavenProject project;
 
 	@Parameter( property = "modulePath", defaultValue = "${project.build.directory}/dependency" )
 	private String modulePath;
@@ -52,6 +58,14 @@ public class PatchMojo extends AbstractMojo {
 			getLog().error( "Error occurred generating module patch", throwable );
 		}
 
+	}
+
+	public MavenProject getProject() {
+		return project;
+	}
+
+	public void setProject( MavenProject project ) {
+		this.project = project;
 	}
 
 	public String getModulePath() {
@@ -89,6 +103,34 @@ public class PatchMojo extends AbstractMojo {
 		}
 	}
 
+	ModuleRef resolveDependencies( ModuleRef module ) {
+		// Load the module jar file
+		File file = new File( getModulePath(), module.getJar() );
+		if( !file.exists() ) throw new IllegalArgumentException( "Module file does not exist: " + file );
+
+		// Can't look up the dependencies with the module references because they are not modules yet
+		// Have to ask Maven about the dependencies.
+		Set<Artifact> artifacts = project.getDependencyArtifacts();
+		for( Artifact artifact : artifacts ) {
+			System.out.println( "Artifact=" + artifact.getFile());
+		}
+
+		Artifact artifact;
+
+		// Get the module references
+		Set<ModuleReference> moduleReferences = getModuleReferences( file );
+		for( ModuleReference reference : moduleReferences ) {
+			System.out.println( "Module reference=" + reference );
+			for( ModuleDescriptor.Requires requires : reference.descriptor().requires() ) {
+				System.out.println( "Module requires=" + requires.name() );
+			}
+		}
+
+		// TODO Resolve the jar dependency tree
+
+		return module;
+	}
+
 	private void patch( ModuleJar jar, File file ) throws IOException, InterruptedException {
 		Set<ModuleReference> moduleReferences = getModuleReferences( file );
 
@@ -117,7 +159,7 @@ public class PatchMojo extends AbstractMojo {
 
 		if( moduleReferences.size() > 1 ) {
 			List<String> names = moduleReferences.stream().map( ( reference ) -> reference.descriptor().name() ).collect( Collectors.toList() );
-			throw new IllegalArgumentException( "ModuleJar contains more than one module: " + names);
+			throw new IllegalArgumentException( "ModuleJar contains more than one module: " + names );
 		}
 
 		return moduleReferences;
@@ -158,28 +200,13 @@ public class PatchMojo extends AbstractMojo {
 			builder.append( "," );
 			builder.append( module );
 		}
-		String addModules = modules.size() == 0 ? "" : builder.substring(1);
+		String addModules = modules.size() == 0 ? "" : builder.substring( 1 );
 
 		String jdepsResult;
 		if( addModules.isBlank() ) {
-			jdepsResult = exec( false,
-				jdeps.toString(),
-				"--upgrade-module-path",
-				modulePath,
-				"--generate-module-info",
-				workFolder.toString(),
-				tempModule.toString()
-			);
+			jdepsResult = exec( false, jdeps.toString(), "--upgrade-module-path", modulePath, "--generate-module-info", workFolder.toString(), tempModule.toString() );
 		} else {
-			jdepsResult = exec( false,
-				jdeps.toString(),
-				"--upgrade-module-path",
-				modulePath,
-				"--add-modules=" + addModules,
-				"--generate-module-info",
-				workFolder.toString(),
-				tempModule.toString()
-			);
+			jdepsResult = exec( false, jdeps.toString(), "--upgrade-module-path", modulePath, "--add-modules=" + addModules, "--generate-module-info", workFolder.toString(), tempModule.toString() );
 		}
 		if( !"".equals( jdepsResult ) ) throw new RuntimeException( jdepsResult );
 
