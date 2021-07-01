@@ -16,10 +16,7 @@ import java.lang.module.ModuleDescriptor;
 import java.lang.module.ModuleFinder;
 import java.lang.module.ModuleReference;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Objects;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -112,7 +109,7 @@ public class PatchMojo extends AbstractMojo {
 		// Have to ask Maven about the dependencies.
 		Set<Artifact> artifacts = project.getDependencyArtifacts();
 		for( Artifact artifact : artifacts ) {
-			System.out.println( "Artifact=" + artifact.getFile());
+			System.out.println( "Artifact=" + artifact.getFile() );
 		}
 
 		Artifact artifact;
@@ -149,7 +146,7 @@ public class PatchMojo extends AbstractMojo {
 		if( moduleName == null ) moduleName = file.getName().replace( "-", "." );
 
 		getLog().info( "Patching module: " + file.getName() + " as " + moduleName );
-		patch( file, moduleName, jar.getModules() );
+		patch( file, moduleName, jar.getModules(), jar.isIgnoreMissing() );
 
 		//if( isAutomaticModule( file ) ) throw new RuntimeException( "Module is still an automatic module: " + moduleName );
 	}
@@ -171,7 +168,7 @@ public class PatchMojo extends AbstractMojo {
 	}
 
 	@SuppressWarnings( "ResultOfMethodCallIgnored" )
-	private void patch( File file, String moduleName, List<String> modules ) throws IOException, InterruptedException {
+	private void patch( File file, String moduleName, List<String> modules, boolean ignoreMissing ) throws IOException, InterruptedException {
 		File workFolder = new File( getTempFolder() );
 		File tempModule = new File( workFolder, file.getName() );
 
@@ -179,14 +176,14 @@ public class PatchMojo extends AbstractMojo {
 		try {
 			if( !workFolder.mkdirs() ) throw new IOException( "Unable to make temp folder " + workFolder );
 			if( !file.renameTo( tempModule ) ) throw new IOException( "Unable to move " + file + " to " + tempModule );
-			patchModule( moduleName, workFolder, tempModule, modules );
+			patchModule( moduleName, workFolder, tempModule, modules, ignoreMissing );
 		} finally {
 			tempModule.renameTo( file );
 			deleteAll( workFolder );
 		}
 	}
 
-	private void patchModule( String moduleName, File workFolder, File tempModule, List<String> modules ) throws IOException, InterruptedException {
+	private void patchModule( String moduleName, File workFolder, File tempModule, List<String> modules, boolean ignoreMissing ) throws IOException, InterruptedException {
 		File javaBin = new File( System.getProperty( "java.home" ), "bin" );
 		File jdeps = new File( javaBin, "jdeps" );
 		File javac = new File( javaBin, "javac" );
@@ -202,12 +199,20 @@ public class PatchMojo extends AbstractMojo {
 		}
 		String addModules = modules.size() == 0 ? "" : builder.substring( 1 );
 
-		String jdepsResult;
-		if( addModules.isBlank() ) {
-			jdepsResult = exec( false, jdeps.toString(), "--upgrade-module-path", modulePath, "--generate-module-info", workFolder.toString(), tempModule.toString() );
-		} else {
-			jdepsResult = exec( false, jdeps.toString(), "--upgrade-module-path", modulePath, "--add-modules=" + addModules, "--generate-module-info", workFolder.toString(), tempModule.toString() );
+		List<String> commands = new ArrayList<>();
+		commands.add( jdeps.toString() );
+		if( ignoreMissing ) commands.add( "--ignore-missing-deps" );
+		commands.add( "--upgrade-module-path" );
+		commands.add( modulePath );
+		if( !addModules.isBlank() ) {
+			commands.add( "--add-modules" );
+			commands.add( addModules );
 		}
+		commands.add( "--generate-module-info" );
+		commands.add( workFolder.toString() );
+		commands.add( tempModule.toString() );
+
+		String jdepsResult = exec( false, commands );
 		if( !"".equals( jdepsResult ) ) throw new RuntimeException( jdepsResult );
 
 		String javacResult = exec( false, javac.toString(), "-p", modulePath, "--patch-module", moduleName + "=" + tempModule, moduleInfo.toString() );
@@ -220,7 +225,12 @@ public class PatchMojo extends AbstractMojo {
 	}
 
 	@SuppressWarnings( "SameParameterValue" )
-	String exec( boolean log, String... commands ) throws IOException, InterruptedException {
+	private String exec( boolean log, String... commands ) throws IOException, InterruptedException {
+		return exec( log, Arrays.asList( commands ) );
+	}
+
+	@SuppressWarnings( "SameParameterValue" )
+	String exec( boolean log, List<String> commands ) throws IOException, InterruptedException {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 
 		ProcessBuilder builder = new ProcessBuilder( commands );

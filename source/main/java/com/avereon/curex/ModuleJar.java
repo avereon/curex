@@ -11,6 +11,8 @@ public class ModuleJar {
 
 	private List<String> modules = new ArrayList<>();
 
+	private boolean ignoreMissing;
+
 	public String getName() {
 		return name;
 	}
@@ -36,6 +38,14 @@ public class ModuleJar {
 	public ModuleJar setModules( List<String> modules ) {
 		this.modules = modules;
 		return this;
+	}
+
+	public boolean isIgnoreMissing() {
+		return ignoreMissing;
+	}
+
+	public void setIgnoreMissing( boolean ignoreMissing ) {
+		this.ignoreMissing = ignoreMissing;
 	}
 
 }
