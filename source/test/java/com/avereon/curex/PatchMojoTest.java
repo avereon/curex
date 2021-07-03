@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -35,6 +36,27 @@ public class PatchMojoTest {
 		expectedCommands.addAll( generateExpectedCommands( modulePath, tempFolder, "jackson-annotations.jar", "com.fasterxml.jackson.annotation" ) );
 		expectedCommands.addAll( generateExpectedCommands( modulePath, tempFolder, "jackson-databind.jar", "com.fasterxml.jackson.databind", "com.fasterxml.jackson.annotation" ) );
 		assertThat( generator.getCommands(), contains( expectedCommands.toArray() ) );
+	}
+
+	@Test
+	public void testPatchWithMerge() {
+		String modulePath = "source/test/resources";
+		MockModuleGenerator generator = new MockModuleGenerator();
+		generator.setModulePath( modulePath );
+		String tempFolder = generator.getTempFolder();
+
+		ModuleJar mergeJar = new ModuleJar().setName( "jackson-databind.jar" ).setMergeJars( Set.of( "jackson-core.jar", "jackson-annotations.jar" ) );
+		List<ModuleJar> jars = List.of( mergeJar );
+
+		generator.setJars( jars.toArray( new ModuleJar[]{} ) );
+		generator.execute();
+
+//		List<String[]> expectedCommands = new ArrayList<>();
+//		expectedCommands.addAll( generateExpectedCommands( modulePath, tempFolder, "commons-io-1.2.3.jar", "org.apache.commons.io" ) );
+//		expectedCommands.addAll( generateExpectedCommands( modulePath, tempFolder, "jackson-core.jar", "com.fasterxml.jackson.core" ) );
+//		expectedCommands.addAll( generateExpectedCommands( modulePath, tempFolder, "jackson-annotations.jar", "com.fasterxml.jackson.annotation" ) );
+//		expectedCommands.addAll( generateExpectedCommands( modulePath, tempFolder, "jackson-databind.jar", "com.fasterxml.jackson.databind", "com.fasterxml.jackson.annotation" ) );
+//		assertThat( generator.getCommands(), contains( expectedCommands.toArray() ) );
 	}
 
 	private List<String[]> generateExpectedCommands( String modulePath, String tempFolder, String jarName, String moduleName ) {

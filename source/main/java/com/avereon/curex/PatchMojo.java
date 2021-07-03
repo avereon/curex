@@ -1,5 +1,6 @@
 package com.avereon.curex;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -10,13 +11,17 @@ import org.apache.maven.shared.model.fileset.util.FileSetManager;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.module.ModuleFinder;
 import java.lang.module.ModuleReference;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 
 /**
@@ -117,8 +122,12 @@ public class PatchMojo extends AbstractMojo {
 		if( moduleName == null ) moduleName = file.getName().replace( "-", "." );
 		jar.setModule( moduleName );
 
-		getLog().info( "Patching module: " + file.getName() + " as " + jar.getModule() );
-		patchModule( jar, file );
+		try {
+			getLog().info( "Patching module: " + file.getName() + " as " + jar.getModule() );
+			patchModule( jar, file );
+		} finally {
+			deleteAll( new File( getTempFolder() ) );
+		}
 
 		//if( isAutomaticModule( file ) ) throw new RuntimeException( "Module is still an automatic module: " + moduleName );
 	}
@@ -147,11 +156,10 @@ public class PatchMojo extends AbstractMojo {
 		try {
 			if( !workFolder.mkdirs() ) throw new IOException( "Unable to make temp folder " + workFolder );
 			if( !file.renameTo( tempModule ) ) throw new IOException( "Unable to move " + file + " to " + tempModule );
-			doMergeJars( jar, tempModule );
+			if( jar.getMergeJars().size() > 0 ) doMergeJars( jar, tempModule );
 			doPatchModule( jar, tempModule );
 		} finally {
 			tempModule.renameTo( file );
-			deleteAll( workFolder );
 		}
 	}
 
@@ -163,22 +171,35 @@ public class PatchMojo extends AbstractMojo {
 		File workFolder = new File( getTempFolder() );
 		File tempJarFolder = new File( workFolder, "tempJar" );
 
+		List<File> mergeJars = new ArrayList<>( files );
+		mergeJars.add( 0, primary );
+
 		// Move the primary file out of the way
-		File tempPrimaryJar = new File( workFolder, "primary.jar");
-		primary.renameTo( tempPrimaryJar );
+		File tempPrimaryFile = new File( workFolder, "primary.jar" );
+		getLog().info( "temp primary=" + tempPrimaryFile );
 
-		try {
-			for( File mergeJar : files ) {
-				// Unpack any merge jars
-				// TODO Use file set to find files, move them and unpack them
+		// Create a merged manifest
+		Manifest mergedManifest = new Manifest();
+		for( File mergeJar : mergeJars ) {
+			JarFile jarFile = new JarFile( mergeJar );
+			Manifest manifest = jarFile.getManifest();
+			mergedManifest.getMainAttributes().putAll( manifest.getMainAttributes() );
+			mergedManifest.getEntries().forEach( ( key, value ) -> mergedManifest.getAttributes( key ).putAll( value ) );
+		}
+
+		try( JarOutputStream jarOutputStream = new JarOutputStream( new FileOutputStream( tempPrimaryFile ), mergedManifest ) ) {
+			Set<String> entries = new HashSet<>();
+			entries.add( "META-INF/MANIFEST.MF" );
+			for( File mergeJar : mergeJars ) {
 				JarFile jarFile = new JarFile( mergeJar );
-
+				for( JarEntry entry : new Enumerator<>( jarFile.entries() ) ) {
+					if( entries.contains( entry.getName() ) ) continue;
+					jarOutputStream.putNextEntry( entry );
+					IOUtils.copy( jarFile.getInputStream( entry ), jarOutputStream );
+					jarOutputStream.closeEntry();
+					entries.add( entry.getName() );
+				}
 			}
-			// Unpack the module jar
-
-			// Pack them all back together
-		} finally {
-			deleteAll( tempJarFolder );
 		}
 	}
 
