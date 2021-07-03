@@ -1,7 +1,9 @@
 package com.avereon.curex;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class ModuleJar {
 
@@ -9,9 +11,11 @@ public class ModuleJar {
 
 	private String module;
 
-	private List<String> modules = new ArrayList<>();
-
 	private boolean ignoreMissing;
+
+	private final List<String> modules = new ArrayList<>();
+
+	private final Set<String> mergeJars = new HashSet<>();
 
 	public String getName() {
 		return name;
@@ -36,7 +40,16 @@ public class ModuleJar {
 	}
 
 	public ModuleJar setModules( List<String> modules ) {
-		this.modules = modules;
+		this.modules.addAll( modules );
+		return this;
+	}
+
+	public Set<String> getMergeJars() {
+		return mergeJars;
+	}
+
+	public ModuleJar setMergeJars( Set<String> mergeJars ) {
+		this.mergeJars.addAll( mergeJars );
 		return this;
 	}
 

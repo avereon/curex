@@ -1,6 +1,5 @@
 package com.avereon.curex;
 
-import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -12,12 +11,12 @@ import org.apache.maven.shared.model.fileset.util.FileSetManager;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.lang.module.ModuleDescriptor;
 import java.lang.module.ModuleFinder;
 import java.lang.module.ModuleReference;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 
 /**
@@ -95,37 +94,9 @@ public class PatchMojo extends AbstractMojo {
 		FileSet fileSet = new FileSet();
 		fileSet.setDirectory( getModulePath() );
 		fileSet.addInclude( jar.getName() );
-		for( String include : new FileSetManager().getIncludedFiles( fileSet ) ) {
-			patch( jar, new File( getModulePath(), include ) );
+		for( String file : new FileSetManager().getIncludedFiles( fileSet ) ) {
+			patch( jar, new File( getModulePath(), file ) );
 		}
-	}
-
-	ModuleRef resolveDependencies( ModuleRef module ) {
-		// Load the module jar file
-		File file = new File( getModulePath(), module.getJar() );
-		if( !file.exists() ) throw new IllegalArgumentException( "Module file does not exist: " + file );
-
-		// Can't look up the dependencies with the module references because they are not modules yet
-		// Have to ask Maven about the dependencies.
-		Set<Artifact> artifacts = project.getDependencyArtifacts();
-		for( Artifact artifact : artifacts ) {
-			System.out.println( "Artifact=" + artifact.getFile() );
-		}
-
-		Artifact artifact;
-
-		// Get the module references
-		Set<ModuleReference> moduleReferences = getModuleReferences( file );
-		for( ModuleReference reference : moduleReferences ) {
-			System.out.println( "Module reference=" + reference );
-			for( ModuleDescriptor.Requires requires : reference.descriptor().requires() ) {
-				System.out.println( "Module requires=" + requires.name() );
-			}
-		}
-
-		// TODO Resolve the jar dependency tree
-
-		return module;
 	}
 
 	private void patch( ModuleJar jar, File file ) throws IOException, InterruptedException {
@@ -144,9 +115,10 @@ public class PatchMojo extends AbstractMojo {
 		}
 
 		if( moduleName == null ) moduleName = file.getName().replace( "-", "." );
+		jar.setModule( moduleName );
 
-		getLog().info( "Patching module: " + file.getName() + " as " + moduleName );
-		patch( file, moduleName, jar.getModules(), jar.isIgnoreMissing() );
+		getLog().info( "Patching module: " + file.getName() + " as " + jar.getModule() );
+		patchModule( jar, file );
 
 		//if( isAutomaticModule( file ) ) throw new RuntimeException( "Module is still an automatic module: " + moduleName );
 	}
@@ -162,13 +134,12 @@ public class PatchMojo extends AbstractMojo {
 		return moduleReferences;
 	}
 
-	@SuppressWarnings( "unused" )
-	private boolean isAutomaticModule( File file ) {
-		return getModuleReferences( file ).iterator().next().descriptor().isAutomatic();
-	}
+	//	@SuppressWarnings( "unused" )
+	//	private boolean isAutomaticModule( File file ) {
+	//		return getModuleReferences( file ).iterator().next().descriptor().isAutomatic();
+	//	}
 
-	@SuppressWarnings( "ResultOfMethodCallIgnored" )
-	private void patch( File file, String moduleName, List<String> modules, boolean ignoreMissing ) throws IOException, InterruptedException {
+	private void patchModule( ModuleJar jar, File file ) throws IOException, InterruptedException {
 		File workFolder = new File( getTempFolder() );
 		File tempModule = new File( workFolder, file.getName() );
 
@@ -176,14 +147,47 @@ public class PatchMojo extends AbstractMojo {
 		try {
 			if( !workFolder.mkdirs() ) throw new IOException( "Unable to make temp folder " + workFolder );
 			if( !file.renameTo( tempModule ) ) throw new IOException( "Unable to move " + file + " to " + tempModule );
-			patchModule( moduleName, workFolder, tempModule, modules, ignoreMissing );
+			doMergeJars( jar, tempModule );
+			doPatchModule( jar, tempModule );
 		} finally {
 			tempModule.renameTo( file );
 			deleteAll( workFolder );
 		}
 	}
 
-	private void patchModule( String moduleName, File workFolder, File tempModule, List<String> modules, boolean ignoreMissing ) throws IOException, InterruptedException {
+	private void doMergeJars( ModuleJar moduleJar, File file ) throws IOException {
+		doMergeJars( file, moduleJar.getMergeJars().stream().map( s -> new File( getModulePath(), s ) ).collect( Collectors.toSet() ) );
+	}
+
+	private void doMergeJars( File primary, Set<File> files ) throws IOException {
+		File workFolder = new File( getTempFolder() );
+		File tempJarFolder = new File( workFolder, "tempJar" );
+
+		// Move the primary file out of the way
+		File tempPrimaryJar = new File( workFolder, "primary.jar");
+		primary.renameTo( tempPrimaryJar );
+
+		try {
+			for( File mergeJar : files ) {
+				// Unpack any merge jars
+				// TODO Use file set to find files, move them and unpack them
+				JarFile jarFile = new JarFile( mergeJar );
+
+			}
+			// Unpack the module jar
+
+			// Pack them all back together
+		} finally {
+			deleteAll( tempJarFolder );
+		}
+	}
+
+	private void doPatchModule( ModuleJar moduleJar, File tempModule ) throws IOException, InterruptedException {
+		File workFolder = new File( getTempFolder() );
+		String moduleName = moduleJar.getModule();
+		List<String> modules = moduleJar.getModules();
+		boolean ignoreMissing = moduleJar.isIgnoreMissing();
+
 		File javaBin = new File( System.getProperty( "java.home" ), "bin" );
 		File jdeps = new File( javaBin, "jdeps" );
 		File javac = new File( javaBin, "javac" );
@@ -212,15 +216,19 @@ public class PatchMojo extends AbstractMojo {
 		commands.add( workFolder.toString() );
 		commands.add( tempModule.toString() );
 
+		// Generate the module-info.java file
 		String jdepsResult = exec( false, commands );
 		if( !"".equals( jdepsResult ) ) throw new RuntimeException( jdepsResult );
 
+		// Compile the module-info.java file
 		String javacResult = exec( false, javac.toString(), "-p", modulePath, "--patch-module", moduleName + "=" + tempModule, moduleInfo.toString() );
 		if( !"".equals( javacResult ) ) {
 			System.err.println( javacResult );
 			return;
 		}
-		String jarResult = exec( false, jar.toString(), "uf", tempModule.toString(), "-C", moduleInfoFolder.toString(), "module-info.class" );
+
+		// Merge the new module-java.class file into the jar
+		String jarResult = exec( false, jar.toString(), "-uf", tempModule.toString(), "-C", moduleInfoFolder.toString(), "module-info.class" );
 		if( !"".equals( jarResult ) ) System.err.println( jarResult );
 	}
 
