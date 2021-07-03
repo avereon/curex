@@ -172,7 +172,7 @@ public class PatchMojo extends AbstractMojo {
 		File tempJarFolder = new File( workFolder, "tempJar" );
 
 		List<File> mergeJars = new ArrayList<>( files );
-		mergeJars.add( 0, primary );
+		mergeJars.add( primary );
 
 		// Move the primary file out of the way
 		File tempPrimaryFile = new File( workFolder, "primary.jar" );
@@ -187,6 +187,8 @@ public class PatchMojo extends AbstractMojo {
 			mergedManifest.getEntries().forEach( ( key, value ) -> mergedManifest.getAttributes( key ).putAll( value ) );
 		}
 
+		// Merge the jars
+		Collections.reverse( mergeJars );
 		try( JarOutputStream jarOutputStream = new JarOutputStream( new FileOutputStream( tempPrimaryFile ), mergedManifest ) ) {
 			Set<String> entries = new HashSet<>();
 			entries.add( "META-INF/MANIFEST.MF" );
