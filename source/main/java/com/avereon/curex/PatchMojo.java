@@ -1,5 +1,6 @@
 package com.avereon.curex;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -207,8 +208,8 @@ public class PatchMojo extends AbstractMojo {
 			}
 		}
 
-		mergeJars.forEach( j -> j.delete() );
-		tempPrimaryFile.renameTo( primary );
+		mergeJars.forEach( FileUtils::deleteQuietly );
+		FileUtils.moveFile( tempPrimaryFile, primary );
 	}
 
 	private void doPatchModule( ModuleJar moduleJar, File tempModule ) throws IOException, InterruptedException {
