@@ -96,12 +96,16 @@ public class PatchMojo extends AbstractMojo {
 	}
 
 	public void patch( ModuleJar jar ) throws Exception {
+		for( File file : getFiles( jar.getName() ) ) {
+			patch( jar, file );
+		}
+	}
+
+	private Set<File> getFiles( String pattern ) {
 		FileSet fileSet = new FileSet();
 		fileSet.setDirectory( getModulePath() );
-		fileSet.addInclude( jar.getName() );
-		for( String file : new FileSetManager().getIncludedFiles( fileSet ) ) {
-			patch( jar, new File( getModulePath(), file ) );
-		}
+		fileSet.addInclude( pattern );
+		return Arrays.stream( new FileSetManager().getIncludedFiles( fileSet ) ).map( s -> new File( getModulePath(), s ) ).collect( Collectors.toSet() );
 	}
 
 	private void patch( ModuleJar jar, File file ) throws IOException, InterruptedException {
@@ -164,19 +168,18 @@ public class PatchMojo extends AbstractMojo {
 	}
 
 	private void doMergeJars( ModuleJar moduleJar, File file ) throws IOException {
-		doMergeJars( file, moduleJar.getMergeJars().stream().map( s -> new File( getModulePath(), s ) ).collect( Collectors.toSet() ) );
+		doMergeJars( file, moduleJar.getMergeJars().stream().map( this::getFiles ).flatMap( Collection::stream ).collect( Collectors.toSet() ) );
 	}
 
 	private void doMergeJars( File primary, Set<File> files ) throws IOException {
 		File workFolder = new File( getTempFolder() );
-		File tempJarFolder = new File( workFolder, "tempJar" );
 
 		List<File> mergeJars = new ArrayList<>( files );
 		mergeJars.add( primary );
 
 		// Move the primary file out of the way
 		File tempPrimaryFile = new File( workFolder, "primary.jar" );
-		getLog().info( "temp primary=" + tempPrimaryFile );
+		getLog().info( "Merging " + files.size() + " other jars into " + primary.getName() );
 
 		// Create a merged manifest
 		Manifest mergedManifest = new Manifest();
@@ -203,6 +206,9 @@ public class PatchMojo extends AbstractMojo {
 				}
 			}
 		}
+
+		mergeJars.forEach( j -> j.delete() );
+		tempPrimaryFile.renameTo( primary );
 	}
 
 	private void doPatchModule( ModuleJar moduleJar, File tempModule ) throws IOException, InterruptedException {
