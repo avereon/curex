@@ -7,12 +7,12 @@
 	<parent>
 		<groupId>com.avereon.pom</groupId>
 		<artifactId>jar</artifactId>
-		<version>3.3.3</version>
+		<version>3.5.0</version>
 	</parent>
 
 	<groupId>com.avereon</groupId>
 	<artifactId>curex</artifactId>
-	<version>1.3</version>
+	<version>1.4</version>
 	<packaging>maven-plugin</packaging>
 
 	<name>Curex</name>
@@ -34,16 +34,19 @@
 	</pluginRepositories>
 
 	<properties>
-		<!-- Version numbers updated 02 Jul 2020 -->
+		<!-- Version numbers updated 07 Mar 2023 -->
 
 		<!-- Needs to stay at a version compatible with all maven builds -->
 		<!-- Keep consistent with the CI pipeline -->
-		<java.version>11</java.version>
+		<java.version>17</java.version>
 
 		<!-- Runtime dependencies -->
-		<maven.plugin.api.version>3.0</maven.plugin.api.version>
-		<maven.plugin.annotations.version>3.4</maven.plugin.annotations.version>
-		<file.management.version>3.0.0</file.management.version>
+		<maven.plugin.api.version>[3.1,)</maven.plugin.api.version>
+		<maven.plugin.annotations.version>[3.8,)</maven.plugin.annotations.version>
+		<file.management.version>[3.1,)</file.management.version>
+		<maven.artifact.transfer.version>[0.13,)</maven.artifact.transfer.version>
+		<maven.shared.utils.version>[3.3,)</maven.shared.utils.version>
+		<mockito.version>[5.1,)</mockito.version>
 	</properties>
 
 	<dependencies>
@@ -61,23 +64,26 @@
 		</dependency>
 		<dependency>
 			<groupId>org.apache.maven.shared</groupId>
-			<artifactId>file-management</artifactId>
-			<version>${file.management.version}</version>
+			<artifactId>maven-artifact-transfer</artifactId>
+			<version>${maven.artifact.transfer.version}</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.maven.shared</groupId>
-			<artifactId>maven-artifact-transfer</artifactId>
-			<version>0.13.1</version>
+			<artifactId>file-management</artifactId>
+			<version>${file.management.version}</version>
+			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.maven.shared</groupId>
 			<artifactId>maven-shared-utils</artifactId>
-			<version>3.3.4</version>
+			<version>${maven.shared.utils.version}</version>
+			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
-			<version>3.10.0</version>
+			<version>${mockito.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
