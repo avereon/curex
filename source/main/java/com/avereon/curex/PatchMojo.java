@@ -62,10 +62,12 @@ public class PatchMojo extends AbstractMojo {
 
 	}
 
+	@SuppressWarnings( "unused" )
 	public MavenProject getProject() {
 		return project;
 	}
 
+	@SuppressWarnings( "unused" )
 	public void setProject( MavenProject project ) {
 		this.project = project;
 	}
@@ -141,17 +143,17 @@ public class PatchMojo extends AbstractMojo {
 		Set<ModuleReference> moduleReferences = ModuleFinder.of( file.toPath() ).findAll();
 
 		if( moduleReferences.size() > 1 ) {
-			List<String> names = moduleReferences.stream().map( ( reference ) -> reference.descriptor().name() ).collect( Collectors.toList() );
+			List<String> names = moduleReferences.stream().map( ( reference ) -> reference.descriptor().name() ).toList();
 			throw new IllegalArgumentException( "ModuleJar contains more than one module: " + names );
 		}
 
 		return moduleReferences;
 	}
 
-	//	@SuppressWarnings( "unused" )
-	//	private boolean isAutomaticModule( File file ) {
-	//		return getModuleReferences( file ).iterator().next().descriptor().isAutomatic();
-	//	}
+		@SuppressWarnings( "unused" )
+		private boolean isAutomaticModule( File file ) {
+			return getModuleReferences( file ).iterator().next().descriptor().isAutomatic();
+		}
 
 	private void patchModule( ModuleJar jar, File file ) throws IOException, InterruptedException {
 		File workFolder = new File( getTempFolder() );
@@ -160,11 +162,13 @@ public class PatchMojo extends AbstractMojo {
 		// Move the module to fix out of the module path
 		try {
 			if( !workFolder.mkdirs() ) throw new IOException( "Unable to make temp folder " + workFolder );
-			if( !file.renameTo( tempModule ) ) throw new IOException( "Unable to move " + file + " to " + tempModule );
+			FileUtils.copyFile( file, tempModule );
+			if( !file.delete() ) throw new IOException( "Unable to move " + file + " to " + tempModule );
 			if( jar.getMergeJars().size() > 0 ) doMergeJars( jar, tempModule );
 			doPatchModule( jar, tempModule );
 		} finally {
-			tempModule.renameTo( file );
+			FileUtils.copyFile( tempModule, file );
+			if( !tempModule.delete() ) getLog().warn( "Temp file not removed: " + tempModule );
 		}
 	}
 
@@ -185,10 +189,11 @@ public class PatchMojo extends AbstractMojo {
 		// Create a merged manifest
 		Manifest mergedManifest = new Manifest();
 		for( File mergeJar : mergeJars ) {
-			JarFile jarFile = new JarFile( mergeJar );
-			Manifest manifest = jarFile.getManifest();
-			mergedManifest.getMainAttributes().putAll( manifest.getMainAttributes() );
-			mergedManifest.getEntries().forEach( ( key, value ) -> mergedManifest.getAttributes( key ).putAll( value ) );
+			try( JarFile jarFile = new JarFile( mergeJar ) ) {
+				Manifest manifest = jarFile.getManifest();
+				mergedManifest.getMainAttributes().putAll( manifest.getMainAttributes() );
+				mergedManifest.getEntries().forEach( ( key, value ) -> mergedManifest.getAttributes( key ).putAll( value ) );
+			}
 		}
 
 		// Merge the jars
@@ -284,7 +289,7 @@ public class PatchMojo extends AbstractMojo {
 
 		int result = process.exitValue();
 
-		return result == 0 ? "" : output.toString( StandardCharsets.UTF_8.toString() );
+		return result == 0 ? "" : output.toString( StandardCharsets.UTF_8 );
 	}
 
 	@SuppressWarnings( "ResultOfMethodCallIgnored" )
