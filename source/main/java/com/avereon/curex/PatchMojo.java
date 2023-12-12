@@ -45,7 +45,7 @@ public class PatchMojo extends AbstractMojo {
 	private String tempFolder = System.getProperty( "java.io.tmpdir" ) + "/curex-" + Integer.toHexString( random.nextInt() );
 
 	@Parameter( property = "modules" )
-	private ModuleJar[] jars;
+	private List<ModuleJar> jars;
 
 	@Override
 	public void execute() {
@@ -90,11 +90,11 @@ public class PatchMojo extends AbstractMojo {
 	}
 
 	@SuppressWarnings( "unused" )
-	public ModuleJar[] getJars() {
+	public List<ModuleJar> getJars() {
 		return jars;
 	}
 
-	public void setJars( ModuleJar[] jars ) {
+	public void setJars( List<ModuleJar> jars ) {
 		this.jars = jars;
 	}
 
@@ -130,13 +130,19 @@ public class PatchMojo extends AbstractMojo {
 		jar.setModule( moduleName );
 
 		try {
-			getLog().info( "Patching module: " + file.getName() + " as " + jar.getModule() );
+			getLog().info( "Patching module: " + jar.getModule() + " in " + file );
 			patchModule( jar, file );
 		} finally {
 			deleteAll( new File( getTempFolder() ) );
 		}
 
-		//if( isAutomaticModule( file ) ) throw new RuntimeException( "Module is still an automatic module: " + moduleName );
+		if( isAutomaticModule( file ) ) throw new RuntimeException( "Module is still an automatic module: " + moduleName );
+	}
+
+	@SuppressWarnings( "unused" )
+	boolean isAutomaticModule( File file ) {
+		ModuleReference reference = getModuleReferences( file ).iterator().next();
+		return reference.descriptor().isAutomatic();
 	}
 
 	private Set<ModuleReference> getModuleReferences( File file ) {
@@ -150,21 +156,17 @@ public class PatchMojo extends AbstractMojo {
 		return moduleReferences;
 	}
 
-		@SuppressWarnings( "unused" )
-		private boolean isAutomaticModule( File file ) {
-			return getModuleReferences( file ).iterator().next().descriptor().isAutomatic();
-		}
-
 	private void patchModule( ModuleJar jar, File file ) throws IOException, InterruptedException {
 		File workFolder = new File( getTempFolder() );
 		File tempModule = new File( workFolder, file.getName() );
+		jar.setFile( tempModule );
 
 		// Move the module to fix out of the module path
 		try {
 			if( !workFolder.mkdirs() ) throw new IOException( "Unable to make temp folder " + workFolder );
 			FileUtils.copyFile( file, tempModule );
 			if( !file.delete() ) throw new IOException( "Unable to move " + file + " to " + tempModule );
-			if( jar.getMergeJars().size() > 0 ) doMergeJars( jar, tempModule );
+			if( !jar.getMergeJars().isEmpty() ) doMergeJars( jar, tempModule );
 			doPatchModule( jar, tempModule );
 		} finally {
 			FileUtils.copyFile( tempModule, file );
@@ -236,7 +238,7 @@ public class PatchMojo extends AbstractMojo {
 			builder.append( "," );
 			builder.append( module );
 		}
-		String addModules = modules.size() == 0 ? "" : builder.substring( 1 );
+		String addModules = modules.isEmpty() ? "" : builder.substring( 1 );
 
 		List<String> commands = new ArrayList<>();
 		commands.add( jdeps.toString() );

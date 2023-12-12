@@ -1,5 +1,6 @@
 package com.avereon.curex;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -16,6 +17,8 @@ public class ModuleJar {
 	private final List<String> modules = new ArrayList<>();
 
 	private final Set<String> mergeJars = new HashSet<>();
+
+	private File file;
 
 	public String getName() {
 		return name;
@@ -61,4 +64,12 @@ public class ModuleJar {
 		this.ignoreMissing = ignoreMissing;
 	}
 
+	public File getFile() {
+		return file;
+	}
+
+	public ModuleJar setFile( File file ) {
+		this.file = file;
+		return this;
+	}
 }
