@@ -47,7 +47,7 @@
 		<maven.artifact.transfer.version>0.13.1</maven.artifact.transfer.version>
 		<maven.shared.utils.version>3.4.2</maven.shared.utils.version>
 
-		<file.management.version>3.1.0</file.management.version>
+		<file.management.version>3.2.0</file.management.version>
 		<mockito.version>5.17.0</mockito.version>
 	</properties>
 
