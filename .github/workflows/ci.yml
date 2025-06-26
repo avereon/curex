@@ -12,11 +12,11 @@ jobs:
     steps:
       - name: Fetch sources
         uses: actions/checkout@v4
-      - name: Set up JDK 21
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: 21
+          java-version: 22
       - name: Build
         env:
           AVN_GPG_PASSWORD: ${{ secrets.AVN_GPG_PASSWORD }}
